@@ -6,7 +6,8 @@
 // тип, который будут иметь элементы матриц
 #define BASE_TYPE double
 // функция перемножения матриц
-__global__ void matrixMult(const BASE_TYPE* A, const BASE_TYPE* B, BASE_TYPE* C, int Acols, int Bcols)
+__global__ void matrixMult(const BASE_TYPE* A, const
+	BASE_TYPE* B, BASE_TYPE* C, int Acols, int Bcols)
 {
 	// индекс начала первой подматрицы А, которую
 	// обрабатывает блок
@@ -55,6 +56,17 @@ int toMultiple(int a, int b) {
 	}
 	return a;
 }
+
+BASE_TYPE* generate(int size)
+{
+	BASE_TYPE* array = new BASE_TYPE[size];
+	for (int i = 0; i < size; i++)
+	{
+		array[i] = rand() / (BASE_TYPE)RAND_MAX;
+	}
+	return array;
+}
+
 int main()
 {
 	//start, stop - for Kernel time
@@ -86,12 +98,8 @@ int main()
 	BASE_TYPE* h_B = (BASE_TYPE*)malloc(Bsize);
 	BASE_TYPE* h_C = (BASE_TYPE*)malloc(Csize);
 
-	for (int i = 0; i < Arows * Acols; ++i) {
-		h_A[i] = rand() / (BASE_TYPE)RAND_MAX;
-	}
-	for (int i = 0; i < Brows * Bcols; ++i) {
-		h_B[i] = rand() / (BASE_TYPE)RAND_MAX;
-	}
+	h_A = generate(Arows * Acols);
+	h_B = generate(Brows * Bcols);
 
 	BASE_TYPE* d_A = NULL;
 	cudaMalloc((void**)&d_A, Asize);
@@ -121,22 +129,6 @@ int main()
 
 	cudaMemcpy(h_C, d_C, Csize, cudaMemcpyDeviceToHost);
 
-	printf("Test STARTED\n");
-	for (int i = 0; i < Arows; i++) {
-		for (int j = 0; j < Bcols; j++) {
-			BASE_TYPE sum = 0;
-			for (int k = 0; k < Acols; k++)
-				sum += h_A[i * Acols + k] * h_B[k * Bcols + j];
-
-			if (fabs(h_C[i * Bcols + j] - sum) > 1e-3)
-			{
-				fprintf(stderr, "Result verification failed at element[% d, % d]!\n", i, j);
-				printf("sum = %f, h_C[i * Bcols + j] = % f\n", sum, h_C[i * Bcols + j]);
-				exit(EXIT_FAILURE);
-			}
-		}
-	}
-	printf("Test PASSED\n");
 
 	cudaFree(d_A);
 	cudaFree(d_B);
